@@ -42,8 +42,10 @@ Directory::Directory(int size)
 {
     table = new DirectoryEntry[size];
     tableSize = size;
-    for (int i = 0; i < tableSize; i++)
-	table[i].inUse = FALSE;
+    for (int i = 0; i < tableSize; i++){
+        table[i].inUse = FALSE;
+        table[i].isDirectory = FALSE;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -131,7 +133,7 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, bool isDirectory)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
@@ -139,6 +141,7 @@ Directory::Add(char *name, int newSector)
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
+            table[i].isDirectory = isDirectory;
             strncpy(table[i].name, name, FileNameMaxLen); 
             table[i].sector = newSector;			
         return TRUE;
@@ -159,10 +162,12 @@ bool
 Directory::Remove(char *name)
 { 
     int i = FindIndex(name);
-
     if (i == -1)
 	return FALSE; 		// name not in directory
     table[i].inUse = FALSE;
+    if(table[i].isDirectory == TRUE){
+        //Recursively remove files inside the directory
+    }
     return TRUE;	
 }
 
@@ -175,9 +180,13 @@ void
 Directory::List()
 {
 	printf("--Directory contents--\n\n");
-	for (int i = 0; i < tableSize; i++)
-	if (table[i].inUse)
-	    printf("%s\n", table[i].name);
+	for (int i = 0; i < tableSize; i++){
+        if (table[i].inUse && !table[i].isDirectory){
+            printf("%s\n", table[i].name);
+        }else if(table[i].isDirectory){
+            //Call Directory List()
+        }
+    }
 	printf("\n----- End of list ----\n\n");
 }
 
@@ -193,12 +202,17 @@ Directory::Print()
     FileHeader *hdr = new FileHeader;
 
     printf("Directory contents:\n");
-    for (int i = 0; i < tableSize; i++)
-	if (table[i].inUse) {
-	    printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
-	    hdr->FetchFrom(table[i].sector);
-	    hdr->Print();
-	}
+    for (int i = 0; i < tableSize; i++){
+        if (table[i].inUse && !table[i].isDirectory) {
+            printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
+            hdr->FetchFrom(table[i].sector);
+            hdr->Print();
+        }else if (table[i].isDirectory){
+            printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
+            printf("Inner directories print not yet supported yet");
+            //Todo : call print inside the directory
+        }
+    }
     printf("\n");
     delete hdr;
 }

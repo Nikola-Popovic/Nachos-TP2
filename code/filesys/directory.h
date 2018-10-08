@@ -32,9 +32,10 @@
 class DirectoryEntry {
   public:    
 	bool inUse;				// Is this directory entry in use?
-    int sector;				// Location on disk to find the 
+  bool isDirectory; //Is it a directory ?
+  int sector;				// Location on disk to find the 
 					//   FileHeader for this file 
-    char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
+  char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
 					// the trailing '\0'
 };
 
@@ -63,7 +64,7 @@ class Directory {
 
     int FindDirectory (char *name);		// Find the sector number of the 
 					// FileHeader for directory: "name"
-	bool Add(char *name, int newSector);  // Add a file name into the directory
+	  bool Add(char *name, int newSector, bool isDirectory);  // Add a file name into the directory
 	
     bool Remove(char *name);		// Remove a file from the directory
 
