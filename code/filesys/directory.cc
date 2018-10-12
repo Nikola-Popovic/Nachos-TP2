@@ -164,9 +164,10 @@ Directory::Remove(char *name)
     int i = FindIndex(name);
     if (i == -1)
 	return FALSE; 		// name not in directory
-    table[i].inUse = FALSE;
     if(table[i].isDirectory == TRUE){
-        //Recursively remove files inside the directory
+        //if not empty, dont delete
+    }else{
+        table[i].inUse = FALSE;
     }
     return TRUE;	
 }
@@ -209,8 +210,7 @@ Directory::Print()
             hdr->Print();
         }else if (table[i].isDirectory){
             printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
-            printf("Inner directories print not yet supported yet");
-            //Todo : call print inside the directory
+            printf("Inner directory print not supported...");
         }
     }
     printf("\n");

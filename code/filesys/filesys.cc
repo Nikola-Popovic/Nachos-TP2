@@ -182,8 +182,22 @@ void FileSystem::TouchOpenedFiles(char * modif){
 bool FileSystem::ChangeDirectory(char* name){
 
 	//IFT320: Partie A
-	printf("!!ChangeDirectory non implemente!!\n");
-	ASSERT(FALSE);			
+    //Find Sector with name
+    OpenFile *openFile = NULL;
+    int sector;	
+    Directory *directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+    sector = directory->Find(name);
+    if(sector == -1)
+        return FALSE; // No such directory ? 
+    //Alright, now we shall open the directory
+    openFile = new OpenFile(sector);
+    if(openFile != NULL){
+        delete directoryFile;
+        directoryFile = openFile;
+        return TRUE;
+    } 		
+    return FALSE;
 }
 
 
@@ -245,7 +259,7 @@ bool FileSystem::Create(char *name, int initialSize)
         sector = freeMap->Find();	// find a sector to hold the file header
     	if (sector == -1) 		
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector, FALSE))
             success = FALSE;	// no space in directory
 	else {
     	    hdr = new FileHeader;
