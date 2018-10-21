@@ -110,7 +110,8 @@ class Thread {
     void Print() { printf("%s, ", name); }
 	
 	#ifdef FILESYS
-	
+    public:
+      OpenFile* currentDirectory;
 	//IFT320: modifications pour partie C ici.
 	
 	#endif

@@ -120,7 +120,24 @@ Directory::Find(char *name)
     return -1;
 }
 
+//----------------------------------------------------------------------
+// Directory::FindDirectory(char* name)
+// 	Look up for a directory name. Returns the disk sector number
+//	where the file's header is stored only if the file is a directory.
+//  Return -1 if the name isn't in the directory or isn't a directory
+//	
+//	"name" -- name of the directory to find
+//----------------------------------------------------------------------
 
+int
+Directory::FindDirectory(char *name)
+{
+    int i = FindIndex(name);
+
+    if (i != -1 && table[i].isDirectory)
+	    return table[i].sector;
+    return -1;
+}
 //----------------------------------------------------------------------
 // Directory::Add
 // 	Add a file into the directory.  Return TRUE if successful;
@@ -181,12 +198,13 @@ void
 Directory::List()
 {
 	printf("--Directory contents--\n\n");
+    printf("Name         isDirectory")
 	for (int i = 0; i < tableSize; i++){
-        if (table[i].inUse && !table[i].isDirectory){
-            printf("%s\n", table[i].name);
-        }else if(table[i].isDirectory){
-            //Call Directory List()
+        
+        if (table[i].inUse){
+            printf("%-12s %-5s", table[i].name, table[i].isDirectory ? "true" : "false");
         }
+        
     }
 	printf("\n----- End of list ----\n\n");
 }
@@ -204,15 +222,30 @@ Directory::Print()
 
     printf("Directory contents:\n");
     for (int i = 0; i < tableSize; i++){
-        if (table[i].inUse && !table[i].isDirectory) {
+        if (table[i].inUse) {
             printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
             hdr->FetchFrom(table[i].sector);
             hdr->Print();
-        }else if (table[i].isDirectory){
-            printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
-            printf("Inner directory print not supported...");
         }
     }
     printf("\n");
     delete hdr;
+}
+
+bool Directory::isFull(){
+    for (int i = 0; i < tableSize; i++){
+        if (!table[i].inUse) {
+            return FALSE;
+        }
+    }
+    return true;
+}
+
+bool Directory:isEmpty(){
+    for (int i = 0; i < tableSize; i++){
+        if (table[i].inUse) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }

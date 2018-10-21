@@ -43,56 +43,64 @@
 				// implementation is available
 				
 //IFT320: CETTE DEFINITION EST UTILISEE POUR LES TP 3 et 4.
-#define FileHandle OpenFile *
+// #define FileHandle OpenFile *
 		
-class FileSystem {
-  public:
-    FileSystem(bool format) {}
+// class FileSystem {
+//   public:
+    // FileSystem(bool format) {}
+// 
+    // bool Create(char *name, int initialSize) { 
+	// int fileDescriptor = OpenForWrite(name);
 
-    bool Create(char *name, int initialSize) { 
-	int fileDescriptor = OpenForWrite(name);
-
-		if (fileDescriptor == -1) return FALSE;
+		// if (fileDescriptor == -1) return FALSE;
 			//UNIX close. Shadowing problem with local method, weird syntax.
-			::Close(fileDescriptor); 
-		return TRUE; 
-	}
+	// 		::Close(fileDescriptor); 
+	// 	return TRUE; 
+	// }
 
-    OpenFile* Open(char *name) {
-	  int fileDescriptor = OpenForReadWrite(name, FALSE);
+    // OpenFile* Open(char *name) {
+	//   int fileDescriptor = OpenForReadWrite(name, FALSE);
 
-	  if (fileDescriptor == -1) return NULL;
-	  return new OpenFile(fileDescriptor);
-      }
+	//   if (fileDescriptor == -1) return NULL;
+	//   return new OpenFile(fileDescriptor);
+    //   }
 
-    bool Remove(char *name) { return Unlink(name) == 0; }
-	int Read(FileHandle file, char *into, int numBytes) {	
-		return file->Read(into,numBytes);
-	}
+    // bool Remove(char *name) { return Unlink(name) == 0; }
+	// int Read(FileHandle file, char *into, int numBytes) {	
+	// 	return file->Read(into,numBytes);
+	// }
 
-	int Write(FileHandle file, char *from, int numBytes) {		
-		return file->Write(from,numBytes);
-	}
+	// int Write(FileHandle file, char *from, int numBytes) {		
+	// 	return file->Write(from,numBytes);
+	// }
 
-	int ReadAt(FileHandle file, char *into, int numBytes,int position) {
-		return file->ReadAt(into,numBytes,position);
-	}
+	// int ReadAt(FileHandle file, char *into, int numBytes,int position) {
+	// 	return file->ReadAt(into,numBytes,position);
+	// }
 
-	int WriteAt(FileHandle file, char *from, int numBytes,int position) {
-		return file->WriteAt(from,numBytes,position);
-	}
-	void Close (FileHandle file){
-		delete file;
-	}
+	// int WriteAt(FileHandle file, char *from, int numBytes,int position) {
+		// return file->WriteAt(from,numBytes,position);
+	// }
+	// void Close (FileHandle file){
+		// delete file;
+	// }
 
-};
+// };
 
-#else // FILESYS
+// #else // FILESYS
+
 //IFT320: DEFINITION DE FILESYSTEM UTILISEE POUR LE TP2
 
 //IFT320: la poignee de fichier est presentement un OpenFile. Devrait changer (Partie B).
-#define FileHandle OpenFile *
-
+#define FileHandle int
+class OpenFileTable {
+	public:
+		FileHandle file; //Index
+		int  sector; 	 //Emplacement physique
+		int  nbUses;     //Nb de fois ouvert
+		bool isWriting;  //Est-il ouvert en écriture ?
+		OpenFile *openFile;
+}
 
 class FileSystem {
   public:
@@ -117,6 +125,8 @@ class FileSystem {
 	//IFT320: Services du systeme de fichiers.
 	
 	FileHandle Open(char *name); 		
+	FileHandle findFile(int sector);
+	FileHandle addFile(int sector, bool isWriting);
 	bool ChangeDirectory(char* name);
 	bool CreateDirectory(char *name);
 	int Read(FileHandle file, char *into, int numBytes);
@@ -134,6 +144,8 @@ class FileSystem {
 	
 	OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
+	OpenFileTable *openFileTable;
+	void initializeOpenFileTable();
 };
 
 
