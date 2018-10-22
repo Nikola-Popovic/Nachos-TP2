@@ -88,8 +88,7 @@ FileSystem::FileSystem(bool format)
 	FileHeader *mapHdr = new FileHeader;
 	FileHeader *dirHdr = new FileHeader;
 
-        DEBUG('f', "Formatting the file system.\n");
-
+        DEBUG('f', "Formatting the file system.\n");     
     // First, allocate space for FileHeaders for the directory and bitmap
     // (make sure no one else grabs these!)
 	freeMap->Mark(FreeMapSector);	    
@@ -151,6 +150,7 @@ FileSystem::FileSystem(bool format)
 //IFT320
 
 void FileSystem::initializeOpenFileTable(){
+    printf("Initializing open file table \n");
     openFileTable = new OpenedFile[NumDirEntries];
     for(int i = 0; i<NumDirEntries; i++){
         openFileTable[i].name = NULL;
@@ -160,7 +160,8 @@ void FileSystem::initializeOpenFileTable(){
     }
 }
 
-int FileSystem::getOpenFileIndex(char *name){
+int FileSystem::nextOpenFileIndex(char *name){
+    printf("Looking for %s \n", name);
     int j = NumDirEntries;
     for(int i = 0; i<NumDirEntries; i++){
         if(openFileTable[i].name == name){
@@ -190,40 +191,42 @@ int FileSystem::WriteAt(FileHandle file, char *from, int numBytes,int position) 
 
 
 void FileSystem::Close (FileHandle file){
-    if(!openFileTable[file].writing){
-        openFileTable[file].nbUses--;
-	    if(0 == openFileTable[file]){
-            delete openFileTable[file].file;
-            delete openFileTable[file].name;
-            openFileTable[file].writing = false;
-        }
-    }else{
-        printf("This file is currently opened for writing.")
-    }
+    printf("Close Opened File \n");
+    openFileTable[file].nbUses--;
+	if(0 == openFileTable[file].nbUses){
+         delete openFileTable[file].openFile;
+         delete openFileTable[file].name;
+         openFileTable[file].writing = false;
+     }
+    
 }
 void FileSystem::CloseAll(){
+    printf("Close all Opened Files \n");
 	for(int i = 0; i<NumDirEntries; i++){
-        if(!openFileTable[i].writing){
-            openFileTable[i].nbUses = 0;
-            delete openFileTable[file].file;
-            delete openFileTable[file].name;
-            openFileTable[file].writing = false;
-        }else{
-            printf("This file is currently opened for writing.")
-        }
+        openFileTable[i].nbUses = 0;
+        delete openFileTable[i].openFile;
+        delete openFileTable[i].name;
+        openFileTable[i].writing = false;
+        
     }
-	ASSERT(FALSE);
 }
 
 void FileSystem::TouchOpenedFiles(char * modif){
-	//IFT320: Partie B
-	printf("!!TouchOpenedFiles non implemente!!\n");
-	ASSERT(FALSE);
+    printf("Touch Opened Files \n");
+	for(int i = 0; i<NumDirEntries; i++){
+        if(openFileTable[i].nbUses < 0){
+            openFileTable[i].writing = TRUE;
+            openFileTable[i].openFile->Write(modif, sizeof(modif));
+            openFileTable[i].writing = FALSE;
+        }
+    }
 }
 
 
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
 bool FileSystem::ChangeDirectory(char* name){
+    
+    printf("\n cd %s \n", name);
 
 	//IFT320: Partie A
     //Find Sector with name
@@ -258,7 +261,7 @@ bool FileSystem::CreateDirectory(char *name)
 
     bool directoryCreated = FALSE;
 
-    printf("Creating directory...");
+    printf("Creating directory...%s \n", name);
 
     //Fetch Current Directory
     Directory *directory = new Directory(NumDirEntries);
@@ -339,14 +342,14 @@ bool FileSystem::Create(char *name, int initialSize)
     int sector;
     bool success;
 
-    DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
+    printf("Creating file %s, size %d\n", name, initialSize);
 
     directory = new Directory(NumDirEntries);
 	directory->FetchFrom(currentDirectory);
 
-    if (directory->Find(name) != -1)
+    if (directory->Find(name) != -1){
       success = FALSE;			// file is already in directory
-    else {	
+    }else {	
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
         sector = freeMap->Find();	// find a sector to hold the file header
@@ -391,20 +394,21 @@ FileHandle FileSystem::Open(char *name)
 	directory->FetchFrom(currentDirectory);
     sector = directory->Find(name); 
     int fileIndex = -1;
-    DEBUG('f', "Opening file %s\n", name);
+    printf("Opening file %s\n", name);
 	if (sector >= 0){
-        fileIndex = getOpenFileIndex(name);
+        fileIndex = nextOpenFileIndex(name);
+        printf("FileInde: %d \n", fileIndex);
         if(fileIndex == -1){
-            printf("Open file table full...")
+            printf("Open file table full...");
         }else{
             if(openFileTable[fileIndex].openFile == NULL){
                 openFileTable[fileIndex].name = name;
-                openFileTable[fileIndex].file = openFile;
+                openFileTable[fileIndex].openFile = openFile;
             }
             openFileTable[fileIndex].nbUses++;
         }
     }else{
-        printf("Couldn't find file in current directory")
+        printf("Couldn't find file in current directory");
     }
     delete directory;
     return fileIndex;				// return NULL if not found
@@ -427,7 +431,7 @@ FileHandle FileSystem::Open(char *name)
 bool FileSystem::Remove(char *name)
 { 
 	//IFT320: partie A
-	
+	printf("Removing %s \n", name);
     Directory *directory;
     BitMap *freeMap;
     FileHeader *fileHdr;
@@ -441,7 +445,7 @@ bool FileSystem::Remove(char *name)
        delete directory;
        return FALSE;			 // file not found 
     }
-    	
+    //if(getOpenFileIndex(name))
 	fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
 	

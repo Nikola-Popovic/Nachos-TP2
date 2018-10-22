@@ -114,9 +114,10 @@ int
 Directory::Find(char *name)
 {
     int i = FindIndex(name);
-
+    printf("Finding File : %s \n", name);
     if (i != -1)
 	return table[i].sector;
+    printf("Couldn't find the given file \n");
     return -1;
 }
 
@@ -133,9 +134,10 @@ int
 Directory::FindDirectory(char *name)
 {
     int i = FindIndex(name);
-
+    printf("Finding Directory : %s \n", name);
     if (i != -1 && table[i].isDirectory)
 	    return table[i].sector;
+    printf("Couldn't find the given directory \n");
     return -1;
 }
 //----------------------------------------------------------------------
@@ -152,17 +154,21 @@ Directory::FindDirectory(char *name)
 bool
 Directory::Add(char *name, int newSector, bool isDirectory)
 { 
+    printf("Adding File in Directory : %s \n", name);
     if (FindIndex(name) != -1)
 	return FALSE;
 
-    for (int i = 0; i < tableSize; i++)
+    for (int i = 0; i < tableSize; i++){
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
             table[i].isDirectory = isDirectory;
             strncpy(table[i].name, name, FileNameMaxLen); 
-            table[i].sector = newSector;			
-        return TRUE;
-	}
+            table[i].sector = newSector;	
+            printf("Added Directory at index %d \n", i);		
+            return TRUE;
+	    }
+    }
+    printf("No space available in Directory \n");
     return FALSE;	// no space.  Fix when we have extensible files.
 }
 
@@ -178,10 +184,12 @@ Directory::Add(char *name, int newSector, bool isDirectory)
 bool
 Directory::Remove(char *name)
 { 
+    printf("Removing file from Directory : %s \n", name);
     int i = FindIndex(name);
     if (i == -1)
 	return FALSE; 		// name not in directory
     if(table[i].isDirectory == TRUE){
+        printf("File is a directory \n");
         //if not empty, dont delete
     }else{
         table[i].inUse = FALSE;
@@ -198,11 +206,11 @@ void
 Directory::List()
 {
 	printf("--Directory contents--\n\n");
-    printf("Name         isDirectory");
+    printf("Name         isDirectory \n");
 	for (int i = 0; i < tableSize; i++){
         
         if (table[i].inUse){
-            printf("%-12s %-5s", table[i].name, table[i].isDirectory ? "true" : "false");
+            printf("%-12s %-5s \n", table[i].name, table[i].isDirectory ? "true" : "false");
         }
         
     }
