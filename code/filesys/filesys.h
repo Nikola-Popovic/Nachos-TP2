@@ -145,7 +145,7 @@ class FileSystem {
 					// file names, represented as a file
 	OpenedFile *openFileTable;
 	void initializeOpenFileTable();
-	int getOpenFileIndex(char* name);
+	int nextOpenFileIndex(char* name);
 };
 
 
