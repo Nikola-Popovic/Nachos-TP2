@@ -87,20 +87,19 @@
 
 // };
 
-// #else // FILESYS
+ #else // FILESYS
 
 //IFT320: DEFINITION DE FILESYSTEM UTILISEE POUR LE TP2
 
 //IFT320: la poignee de fichier est presentement un OpenFile. Devrait changer (Partie B).
 #define FileHandle int
-class OpenFileTable {
+struct OpenedFile {
 	public:
-		FileHandle file; //Index
-		int  sector; 	 //Emplacement physique
+		char* name;      //Index
 		int  nbUses;     //Nb de fois ouvert
-		bool isWriting;  //Est-il ouvert en écriture ?
+		bool writing;  //Est-il ouvert en écriture ?
 		OpenFile *openFile;
-}
+};
 
 class FileSystem {
   public:
@@ -144,8 +143,9 @@ class FileSystem {
 	
 	OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
-	OpenFileTable *openFileTable;
+	OpenedFile *openFileTable;
 	void initializeOpenFileTable();
+	int getOpenFileIndex(char* name);
 };
 
 

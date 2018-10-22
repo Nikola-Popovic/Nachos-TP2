@@ -198,7 +198,7 @@ void
 Directory::List()
 {
 	printf("--Directory contents--\n\n");
-    printf("Name         isDirectory")
+    printf("Name         isDirectory");
 	for (int i = 0; i < tableSize; i++){
         
         if (table[i].inUse){
@@ -241,7 +241,7 @@ bool Directory::isFull(){
     return true;
 }
 
-bool Directory:isEmpty(){
+bool Directory::isEmpty(){
     for (int i = 0; i < tableSize; i++){
         if (table[i].inUse) {
             return FALSE;

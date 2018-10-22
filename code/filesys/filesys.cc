@@ -144,46 +144,74 @@ FileSystem::FileSystem(bool format)
         directoryFile = new OpenFile(DirectorySector);
         currentDirectory = directoryFile;
         //Test : if openfiletable == null 
-        initializeOpenFileTable;
+        initializeOpenFileTable();
     }
 }
 
 //IFT320
 
-void FileSystem:initializeOpenFileTable(){
-    openFileTable = new OpenFileTable[NumDirEntries];
+void FileSystem::initializeOpenFileTable(){
+    openFileTable = new OpenedFile[NumDirEntries];
     for(int i = 0; i<NumDirEntries; i++){
-        openFileTable[i]->file = -1;
-        openFileTable[i]->sector = -1;
-        openFileTable[i]->nbUses = 0;
-        openFileTable[i]->isWriting = FALSE;
-        openFileTable[i]->openFile = NULL;
+        openFileTable[i].name = NULL;
+        openFileTable[i].nbUses = 0;
+        openFileTable[i].writing = FALSE;
+        openFileTable[i].openFile = NULL;
     }
 }
 
+int FileSystem::getOpenFileIndex(char *name){
+    int j = NumDirEntries;
+    for(int i = 0; i<NumDirEntries; i++){
+        if(openFileTable[i].name == name){
+            return i;
+        }
+        if(openFileTable[i].openFile == NULL && i<j)
+            j = i; //First free space
+    }
+    return j < NumDirEntries ? j : -1;
+}
+
 int FileSystem::Read(FileHandle file, char *into, int numBytes) {	
-    return openFileTable[file]->openFile->Read(into, numBytes);
+    return openFileTable[file].openFile->Read(into, numBytes);
 }
 
 int FileSystem::Write(FileHandle file, char *from, int numBytes) {
-    return openFileTable[file]->openFile->Write(from, numBytes);
+    return openFileTable[file].openFile->Write(from, numBytes);
 }
 
 int FileSystem::ReadAt(FileHandle file, char *into, int numBytes,int position) {
-    return openFileTable[file]->openFile->ReadAt(into, numBytes,position);
+    return openFileTable[file].openFile->ReadAt(into, numBytes,position);
 }
 
 int FileSystem::WriteAt(FileHandle file, char *from, int numBytes,int position) {
-    return openFileTable[file]->openFile->WriteAt(from,numBytes,position);
+    return openFileTable[file].openFile->WriteAt(from,numBytes,position);
 }
 
 
 void FileSystem::Close (FileHandle file){
-	//Close OpenFile
+    if(!openFileTable[file].writing){
+        openFileTable[file].nbUses--;
+	    if(0 == openFileTable[file]){
+            delete openFileTable[file].file;
+            delete openFileTable[file].name;
+            openFileTable[file].writing = false;
+        }
+    }else{
+        printf("This file is currently opened for writing.")
+    }
 }
 void FileSystem::CloseAll(){
-	//IFT320: Partie B
-	printf("!!CloseAll non implemente!!\n");
+	for(int i = 0; i<NumDirEntries; i++){
+        if(!openFileTable[i].writing){
+            openFileTable[i].nbUses = 0;
+            delete openFileTable[file].file;
+            delete openFileTable[file].name;
+            openFileTable[file].writing = false;
+        }else{
+            printf("This file is currently opened for writing.")
+        }
+    }
 	ASSERT(FALSE);
 }
 
@@ -236,8 +264,8 @@ bool FileSystem::CreateDirectory(char *name)
     Directory *directory = new Directory(NumDirEntries);
     directory->FetchFrom(currentDirectory);
 
-    if(directory.Find(name) != -1){
-        printf("A file/directory with the same name already exists in this directory.\n")
+    if(directory->Find(name) != -1){
+        printf("A file/directory with the same name already exists in this directory.\n");
     }else{
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
@@ -246,8 +274,7 @@ bool FileSystem::CreateDirectory(char *name)
         if(sector != -1){
             if(!directory->isFull()){
                 hdr = new FileHeader;
-                opSucc = hdr->Allocate(freeMap, DirectoryFileSize);
-                if(opSucc){
+                if(hdr->Allocate(freeMap, DirectoryFileSize)){
                     directory->Add(name,sector,TRUE);
                     hdr->WriteBack(sector);
                     directory->WriteBack(currentDirectory);
@@ -361,19 +388,26 @@ FileHandle FileSystem::Open(char *name)
     Directory *directory = new Directory(NumDirEntries);
     OpenFile *openFile = NULL;
     int sector;	
-	
-
-    DEBUG('f', "Opening file %s\n", name);
-	
-    directory->FetchFrom(currentDirectory);
+	directory->FetchFrom(currentDirectory);
     sector = directory->Find(name); 
-    if (sector >= 0) {		
-		openFile = new OpenFile(sector);	// name was found in directory 	
+    int fileIndex = -1;
+    DEBUG('f', "Opening file %s\n", name);
+	if (sector >= 0){
+        fileIndex = getOpenFileIndex(name);
+        if(fileIndex == -1){
+            printf("Open file table full...")
+        }else{
+            if(openFileTable[fileIndex].openFile == NULL){
+                openFileTable[fileIndex].name = name;
+                openFileTable[fileIndex].file = openFile;
+            }
+            openFileTable[fileIndex].nbUses++;
+        }
+    }else{
+        printf("Couldn't find file in current directory")
     }
-	
-	delete directory;
-	
-    return openFile;				// return NULL if not found
+    delete directory;
+    return fileIndex;				// return NULL if not found
 }
 
 //----------------------------------------------------------------------
