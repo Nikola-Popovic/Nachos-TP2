@@ -75,7 +75,7 @@ class Directory {
 					//  names and their contents.	
     bool isFull();
     bool isEmpty();
-
+    bool isDirectory(char *name);
   private:
     int tableSize;			// Number of directory entries
     DirectoryEntry *table;		// Table of pairs: 
