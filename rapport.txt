@@ -1,0 +1,43 @@
+Nikola Popovic 1708 4058
+
+Étant donné que j'étais seul j'avais seulement la partie 1 et 2 a accomplir.
+
+Partie 1 : 
+
+Choix thread.(h/cpp) : 
+	le current directory se retrouve dans le thread. Pour la partie 1 et 2 ce n'est pas nécessaire
+	mais dans le cas que j'aurais effectué la partie 3. Le current directory doit être propre au thread.
+	On peut obtenir le directory en appelant currentThread->currentDirectory
+
+Choix directory.(h/cpp):
+	J'ai ajoutée une variable booléenne isDirectory qui indique si le fichier est un directory ou simplement un fichier.
+	La methode Add prend un nouveau paramètre qui indique si le fichier est un directory ou un fichier.
+	J'ai ajouté une fonction FindDirectory qui retourne seulement des # de secteurs pour directory ou -1 en cas d'échec.
+	Une fonction isFull() et isEmpty() permet de verifier le contenu du directory pour determiner son état (plein ou vide)
+  		Pour ce faire on vérifie à partir du deuxième index (À cause de l'ajout automatique des index "." et "..").
+		s'il existe un fichier utilisé.
+
+
+Choix filesys.(g/cpp):
+	CreateDirectory(): Ajoute un directory dans le directory courant et ajoute le lien '..' a son secteur parent et '.' au secteur du directory. Write back les changements partout.
+	ChangeDirectory():Verifie si cest un directory si oui on change la valeur du currentDirectory dans le fileSys. 
+	Remove() : Si directory, cherche le sous directory pour verifier s'il est vide.
+		   
+	
+Partie 2:
+
+Choix filesys.(g/cpp):
+
+	Structure d'un fichier ouvert: name, nbUses, writing et openFile
+	Ma TFO : est un array de fichier ouvert.
+	le file handle devient un int qui represente l'index du fichier dans ma table de fichier oubert.
+	J'ai ajouté une fonction initializeOpenFileTable() qui initialise les variables de ma T.F.O lors de l'initilisation du file system.
+	Une fonction nextOpenFile() retourne le premier index libre ou l'index du fichier du même nom que le paramètre de la fonction.
+
+	Close(): Je diminue le nbUses du fichier dans ma T.F.O. S'il est inférieur à 0, j'enlève la reference au openFile.
+	CloseAll(): Enleve la reference de tout les openFile
+	TouchOpenedFiles(): Write la modification à tous les fichierouvert.
+
+	Modifications de read write readAt writeAt pour prendre en compte la T.FO.
+
+	Remove : Si c'est un fichier ouvert en writing, on annule le remove.
