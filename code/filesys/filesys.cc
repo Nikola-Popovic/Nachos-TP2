@@ -121,13 +121,13 @@ FileSystem::FileSystem(bool format)
         // empty; but the bitmap has been changed to reflect the fact that
         // sectors on the disk have been allocated for the file headers and
         // to hold the file data for the directory and bitmap.
-        currentDirectory = directoryFile;
-        initializeOpenFileTable();
-            DEBUG('f', "Writing bitmap and directory back to disk.\n");
-        freeMap->WriteBack(freeMapFile);	 // flush changes to disk
-        directory->WriteBack(directoryFile);
         directory->Add(".", DirectorySector, TRUE);
         directory->Add("..", DirectorySector, TRUE);
+        initializeOpenFileTable();
+        DEBUG('f', "Writing bitmap and directory back to disk.\n");
+        freeMap->WriteBack(freeMapFile);	 // flush changes to disk
+        currentDirectory = directoryFile;
+        directory->WriteBack(currentDirectory);
         if (DebugIsEnabled('f')) {
             freeMap->Print();
             directory->Print();
@@ -162,7 +162,7 @@ void FileSystem::initializeOpenFileTable(){
 }
 
 int FileSystem::nextOpenFileIndex(char *name){
-    printf("Looking for %s \n", name);
+    printf("NextOpenIndex for %s \n", name);
     int j = NumDirEntries;
     for(int i = 0; i<NumDirEntries; i++){
         if(openFileTable[i].name == name){
@@ -174,30 +174,38 @@ int FileSystem::nextOpenFileIndex(char *name){
     return j < NumDirEntries ? j : -1;
 }
 
-int FileSystem::Read(FileHandle file, char *into, int numBytes) {	
+int FileSystem::Read(FileHandle file, char *into, int numBytes) {
+    printf("Read file at index %i \n", file);	
     return openFileTable[file].openFile->Read(into, numBytes);
 }
 
 int FileSystem::Write(FileHandle file, char *from, int numBytes) {
+    printf("Write file at index %i \n", file);	
     return openFileTable[file].openFile->Write(from, numBytes);
 }
 
 int FileSystem::ReadAt(FileHandle file, char *into, int numBytes,int position) {
+    printf("ReadAt file at index %i \n", file);	
     return openFileTable[file].openFile->ReadAt(into, numBytes,position);
 }
 
 int FileSystem::WriteAt(FileHandle file, char *from, int numBytes,int position) {
+    printf("WriteAt file at index %i \n", file);	
     return openFileTable[file].openFile->WriteAt(from,numBytes,position);
 }
 
 
 void FileSystem::Close (FileHandle file){
-    printf("Close Opened File \n");
+    printf("Close Opened File %i with %i uses\n", file, openFileTable[file].nbUses);
     openFileTable[file].nbUses--;
-	if(0 == openFileTable[file].nbUses){
-         delete openFileTable[file].openFile;
-         delete openFileTable[file].name;
-         openFileTable[file].writing = false;
+	if(0 >= openFileTable[file].nbUses){
+        if(openFileTable[file].openFile != NULL){
+           openFileTable[file].openFile = NULL;
+        }
+        if(openFileTable[file].name != NULL){
+            openFileTable[file].name = NULL;
+        }
+        openFileTable[file].writing = false;
      }
     
 }
@@ -205,8 +213,12 @@ void FileSystem::CloseAll(){
     printf("Close all Opened Files \n");
 	for(int i = 0; i<NumDirEntries; i++){
         openFileTable[i].nbUses = 0;
-        delete openFileTable[i].openFile;
-        delete openFileTable[i].name;
+        if(openFileTable[i].openFile != NULL){
+            openFileTable[i].openFile = NULL;
+        }
+        if(openFileTable[i].name != NULL){
+            openFileTable[i].name = NULL;
+        }
         openFileTable[i].writing = false;
         
     }
@@ -215,9 +227,9 @@ void FileSystem::CloseAll(){
 void FileSystem::TouchOpenedFiles(char * modif){
     printf("Touch Opened Files \n");
 	for(int i = 0; i<NumDirEntries; i++){
-        if(openFileTable[i].nbUses < 0){
+        if(openFileTable[i].nbUses > 0){
             openFileTable[i].writing = TRUE;
-            openFileTable[i].openFile->Write(modif, sizeof(modif));
+            openFileTable[i].openFile->Write(modif, strlen(modif));
             openFileTable[i].writing = FALSE;
         }
     }
@@ -281,7 +293,6 @@ bool FileSystem::CreateDirectory(char *name)
                 if(hdr->Allocate(freeMap, DirectoryFileSize)){
                     directory->Add(name,sector,TRUE);
                     hdr->WriteBack(sector);
-                    directory->WriteBack(currentDirectory);
                     freeMap->WriteBack(freeMapFile);
                     OpenFile *openFile = new OpenFile(sector);
                     Directory *newDir = new Directory(NumDirEntries);
@@ -289,6 +300,7 @@ bool FileSystem::CreateDirectory(char *name)
                     int parentDir = directory->FindDirectory(".");
                     newDir->Add("..", parentDir, true);
                     newDir->WriteBack(openFile);
+                    directory->WriteBack(currentDirectory);
                 }else{
                     printf("No free block to accomodate file headerdr \n");
                 }
@@ -393,16 +405,19 @@ FileHandle FileSystem::Open(char *name)
     OpenFile *openFile = NULL;
     int sector;	
 	directory->FetchFrom(currentDirectory);
+    if(directory->isDirectory(name))
+        ChangeDirectory(name);
     sector = directory->Find(name); 
     int fileIndex = -1;
-    printf("Opening file %s\n", name);
+    printf("Opening file : %s\n", name);
 	if (sector >= 0){
         fileIndex = nextOpenFileIndex(name);
-        printf("FileInde: %d \n", fileIndex);
+        printf("FileIndex: %d \n", fileIndex);
         if(fileIndex == -1){
             printf("Open file table full...");
         }else{
             if(openFileTable[fileIndex].openFile == NULL){
+                openFile = new OpenFile(sector);
                 openFileTable[fileIndex].name = name;
                 openFileTable[fileIndex].openFile = openFile;
             }
