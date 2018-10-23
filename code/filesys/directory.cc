@@ -188,11 +188,7 @@ Directory::Remove(char *name)
     int i = FindIndex(name);
     if (i == -1)
 	return FALSE; 		// name not in directory
-    if(table[i].isDirectory){
-        printf("File is a directory, no deleting this \n");
-    }else{
-        table[i].inUse = FALSE;
-    }
+    table[i].inUse = FALSE;
     return TRUE;	
 }
 
@@ -240,7 +236,7 @@ Directory::Print()
 }
 
 bool Directory::isFull(){
-    for (int i = 0; i < tableSize; i++){
+    for (int i = 2; i < tableSize; i++){
         if (!table[i].inUse) {
             return FALSE;
         }
@@ -249,7 +245,7 @@ bool Directory::isFull(){
 }
 
 bool Directory::isEmpty(){
-    for (int i = 0; i < tableSize; i++){
+    for (int i = 2; i < tableSize; i++){
         if (table[i].inUse) {
             return FALSE;
         }

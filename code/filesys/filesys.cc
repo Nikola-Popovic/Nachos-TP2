@@ -151,7 +151,6 @@ FileSystem::FileSystem(bool format)
 //IFT320
 
 void FileSystem::initializeOpenFileTable(){
-    printf("Initializing open file table \n");
     openFileTable = new OpenedFile[NumDirEntries];
     for(int i = 0; i<NumDirEntries; i++){
         openFileTable[i].name = NULL;
@@ -162,7 +161,6 @@ void FileSystem::initializeOpenFileTable(){
 }
 
 int FileSystem::nextOpenFileIndex(char *name){
-    printf("NextOpenIndex for %s \n", name);
     int j = NumDirEntries;
     for(int i = 0; i<NumDirEntries; i++){
         if(openFileTable[i].name == name){
@@ -175,28 +173,23 @@ int FileSystem::nextOpenFileIndex(char *name){
 }
 
 int FileSystem::Read(FileHandle file, char *into, int numBytes) {
-    printf("Read file at index %i \n", file);	
     return openFileTable[file].openFile->Read(into, numBytes);
 }
 
 int FileSystem::Write(FileHandle file, char *from, int numBytes) {
-    printf("Write file at index %i \n", file);	
     return openFileTable[file].openFile->Write(from, numBytes);
 }
 
 int FileSystem::ReadAt(FileHandle file, char *into, int numBytes,int position) {
-    printf("ReadAt file at index %i \n", file);	
     return openFileTable[file].openFile->ReadAt(into, numBytes,position);
 }
 
 int FileSystem::WriteAt(FileHandle file, char *from, int numBytes,int position) {
-    printf("WriteAt file at index %i \n", file);	
     return openFileTable[file].openFile->WriteAt(from,numBytes,position);
 }
 
 
 void FileSystem::Close (FileHandle file){
-    printf("Close Opened File %i with %i uses\n", file, openFileTable[file].nbUses);
     openFileTable[file].nbUses--;
 	if(0 >= openFileTable[file].nbUses){
         if(openFileTable[file].openFile != NULL){
@@ -210,8 +203,7 @@ void FileSystem::Close (FileHandle file){
     
 }
 void FileSystem::CloseAll(){
-    printf("Close all Opened Files \n");
-	for(int i = 0; i<NumDirEntries; i++){
+    for(int i = 0; i<NumDirEntries; i++){
         openFileTable[i].nbUses = 0;
         if(openFileTable[i].openFile != NULL){
             openFileTable[i].openFile = NULL;
@@ -225,8 +217,7 @@ void FileSystem::CloseAll(){
 }
 
 void FileSystem::TouchOpenedFiles(char * modif){
-    printf("Touch Opened Files \n");
-	for(int i = 0; i<NumDirEntries; i++){
+    for(int i = 0; i<NumDirEntries; i++){
         if(openFileTable[i].nbUses > 0){
             openFileTable[i].writing = TRUE;
             openFileTable[i].openFile->Write(modif, strlen(modif));
@@ -239,9 +230,7 @@ void FileSystem::TouchOpenedFiles(char * modif){
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
 bool FileSystem::ChangeDirectory(char* name){
     
-    printf("\n cd %s \n", name);
-
-	//IFT320: Partie A
+    //IFT320: Partie A
     //Find Sector with name
     OpenFile *openFile = NULL;
     bool didChangeDirectory = FALSE;
@@ -355,8 +344,6 @@ bool FileSystem::Create(char *name, int initialSize)
     int sector;
     bool success;
 
-    printf("Creating file %s, size %d\n", name, initialSize);
-
     directory = new Directory(NumDirEntries);
 	directory->FetchFrom(currentDirectory);
 
@@ -409,12 +396,12 @@ FileHandle FileSystem::Open(char *name)
         ChangeDirectory(name);
     sector = directory->Find(name); 
     int fileIndex = -1;
-    printf("Opening file : %s\n", name);
+    //printf("Opening file : %s\n", name);
 	if (sector >= 0){
         fileIndex = nextOpenFileIndex(name);
-        printf("FileIndex: %d \n", fileIndex);
+        //printf("FileIndex: %d \n", fileIndex);
         if(fileIndex == -1){
-            printf("Open file table full...");
+            //printf("Open file table full...");
         }else{
             if(openFileTable[fileIndex].openFile == NULL){
                 openFile = new OpenFile(sector);
@@ -424,7 +411,7 @@ FileHandle FileSystem::Open(char *name)
             openFileTable[fileIndex].nbUses++;
         }
     }else{
-        printf("Couldn't find file in current directory");
+        //printf("Couldn't find file in current directory");
     }
     delete directory;
     return fileIndex;				// return NULL if not found
@@ -447,7 +434,7 @@ FileHandle FileSystem::Open(char *name)
 bool FileSystem::Remove(char *name)
 { 
 	//IFT320: partie A
-	printf("Removing %s \n", name);
+	//printf("Removing %s \n", name);
     Directory *directory;
     BitMap *freeMap;
     FileHeader *fileHdr;
@@ -456,15 +443,26 @@ bool FileSystem::Remove(char *name)
 	
     directory->FetchFrom(currentDirectory);
     sector = directory->Find(name);
-    if (sector == -1 || directory->isDirectory(name)) {
+    if (sector == -1) {
        delete directory;
        return FALSE;			 // file not found or isDirectory
+    }
+    if(directory->isDirectory(name)){
+        printf("delete subdir");
+        Directory *subDir = new Directory(NumDirEntries);
+        OpenFile *subFile = new OpenFile(sector);
+        subDir->FetchFrom(subFile);
+        if(!subDir->isEmpty()){
+            delete directory;
+            delete subDir;
+            delete subFile;
+            return FALSE;
+        }
     }
     int index = nextOpenFileIndex(name);
     if(index != -1){
         if(openFileTable[index].name == name)
             if(openFileTable[index].writing){
-                printf("File is open for writing... \n");
                 delete directory;
                 return FALSE;
             }
